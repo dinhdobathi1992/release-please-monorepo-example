@@ -30,7 +30,7 @@ jobs:
         continue-on-error: true
         run: |
           echo "Release outputs:"
-          echo "litellm-helm--release_created: ${{ steps.release.outputs.litellm-helm--release_created}}"
+          echo "litellm-helm--release_created: ${{needs.release-please.outputs.litellm-helm--release_created}}"
           echo "litellm-helm--tag_name: ${{ steps.release.outputs.litellm-helm--tag_name}}"
 
   release-hello-react:
