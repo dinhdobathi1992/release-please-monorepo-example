@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.2.0](https://github.com/dinhdobathi1992/release-please-monorepo-example/compare/litellm-backend@v1.1.0...litellm-backend@v1.2.0) (2025-01-14)
+
+
+### Features
+
+* add tags to deployment ([0ac1124](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/0ac112403f36dd35ba61614b577fe51740d8b0ff))
+* add tags to deployment ([0ac1124](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/0ac112403f36dd35ba61614b577fe51740d8b0ff))
+
 ## [1.1.0](https://github.com/dinhdobathi1992/release-please-monorepo-example/compare/litellm-backend@v1.0.0...litellm-backend@v1.1.0) (2025-01-14)
 
 
