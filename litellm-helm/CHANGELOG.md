@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.0](https://github.com/dinhdobathi1992/release-please-monorepo-example/compare/litellm-backend@v1.0.0...litellm-backend@v1.1.0) (2025-01-14)
+
+
+### Features
+
+* Update Chart.yaml ([f550980](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/f5509809ed1482171dad0b8b081c7a45491a65cb))
+* Update Chart.yaml ([f550980](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/f5509809ed1482171dad0b8b081c7a45491a65cb))
+
 ## 1.0.0 (2025-01-14)
 
 
