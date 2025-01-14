@@ -17,6 +17,8 @@ jobs:
       hello-react--release_created: ${{ steps.release.outputs.hello-react--release_created}}
       hello-rust--tag_name: ${{ steps.release.outputs.hello-rust--tag_name}}
       hello-rust--release_created: ${{ steps.release.outputs.hello-rust--release_created}}
+      litellm-helm--tag_name: ${{ steps.release.outputs.litellm-helm--tag_name}}
+      litellm-helm--release_created: ${{ steps.release.outputs.litellm-helm--release_created}}
     steps:
       - uses: googleapis/release-please-action@v4
         id: release
@@ -71,3 +73,15 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
         run: gh release upload ${{ needs.release-please.outputs.hello-rust--tag_name }} hello-rust/target/x86_64-unknown-linux-gnu/release/hello_rust
+
+  release-litellm-helm:
+    if: ${{needs.release-please.outputs.litellm-helm--release_created}}
+    runs-on: ubuntu-latest
+    needs: release-please
+    steps:
+      - uses: actions/checkout@v4
+      - run: helm package litellm-helm
+      - name: Upload Release Artifact
+        env:
+          GITHUB_TOKEN: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
+        run: gh release upload ${{ needs.release-please.outputs.litellm-helm--tag_name }} litellm-helm-*.tgz

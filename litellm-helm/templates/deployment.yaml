@@ -1,0 +1,171 @@
+{{- $fullname := include "litellm.fullname" . -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ template "litellm.fullname" . }}
+  labels:
+    test: true
+    app: {{ template "litellm.name" . }}
+    chart: {{ template "litellm.chart" . }}
+    release: {{ .Release.Name }}
+    heritage: {{ .Release.Service }}
+    test2: true
+spec:
+  replicas: {{ .Values.replicaCount }}
+  {{- with .Values.strategy }}
+  strategy: {{- . | toYaml | nindent 4 }}
+  {{- end }}
+  selector:
+    matchLabels:
+      app: {{ template "litellm.name" . }}
+      release: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app: {{ template "litellm.name" . }}
+        release: {{ .Release.Name }}
+      annotations:
+        checksum/prompts-config: {{ toJson .Values.proxy_config | sha256sum | nindent 10 }}
+      {{- if .Values.podAnnotations }}
+      {{ toYaml .Values.podAnnotations | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ template "litellm.serviceAccountName" . }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+      {{- end }}
+      {{- if .Values.affinity }}
+      affinity: {{ toYaml .Values.affinity | nindent 8 }}
+      {{- end }}
+      {{- if .Values.nodeSelector }}
+      nodeSelector: {{ toYaml .Values.nodeSelector | nindent 8 }}
+      {{- end }}
+      {{- if .Values.tolerations }}
+      tolerations: {{ toYaml .Values.tolerations | nindent 8 }}
+      {{- end }}
+      {{- if .Values.image.pullSecret }}
+      imagePullSecrets:
+        - name: {{ .Values.image.pullSecret }}
+      {{- end }}
+      initContainers:
+        - name: db-ready
+          image: docker.io/bitnami/postgresql:16.1.0-debian-11-r20
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            {{- range $key, $value := .Values.dbInit.env }}
+            - name: "{{ $key }}"
+              value: "{{ $value }}"
+            {{- end }}
+            {{- range $envName, $envValue := .Values.dbInit.envsecrets }}
+            - name: {{ $envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: {{ $envValue }}
+            {{- end }}
+            - name: JOB_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          command:
+            - sh
+            - -c
+            - |
+              # Maximum wait time will be (limit * 2) seconds.
+              limit=60
+              current=0
+              ret=1
+              while [ $current -lt $limit ] && [ $ret -ne 0 ]; do
+                echo "Waiting for database to be ready $current"
+                psql -U $(DATABASE_USERNAME) -h $(DATABASE_HOST) -l
+                ret=$?
+                current=$(( $current + 1 ))
+                sleep 2
+              done
+              if [ $ret -eq 0 ]; then
+                echo "Database is ready"
+              else
+                echo "Database failed to become ready before we gave up waiting."
+              fi
+      containers:
+        - name: {{ .Chart.Name }}
+          image: {{ .Values.image.repository }}:{{ .Values.image.tag }}
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          ports:
+          {{- range .Values.service.ports }}
+          - name: {{ .name }}
+            containerPort: {{ .internalPort }}
+            protocol: {{ .protocol}}
+          {{- end }}
+          args:
+            - --config
+            - /etc/litellm/config.yaml
+          volumeMounts:
+            - mountPath: /etc/litellm/config.yaml
+              subPath: config.yaml
+              readOnly: true
+              name: proxy-config
+          {{- if .Values.livenessProbe.enabled }}
+          livenessProbe:
+            httpGet:
+              path: /health/liveliness
+              port: http
+            initialDelaySeconds: {{ .Values.livenessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.livenessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.livenessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.livenessProbe.successThreshold }}
+            failureThreshold: {{ .Values.livenessProbe.failureThreshold }}
+          {{- end}}
+          {{- if .Values.readinessProbe.enabled }}
+          readinessProbe:
+            httpGet:
+              path: /health/readiness
+              port: http
+            initialDelaySeconds: {{ .Values.readinessProbe.initialDelaySeconds }}
+            periodSeconds: {{ .Values.readinessProbe.periodSeconds }}
+            timeoutSeconds: {{ .Values.readinessProbe.timeoutSeconds }}
+            successThreshold: {{ .Values.readinessProbe.successThreshold }}
+            failureThreshold: {{ .Values.readinessProbe.failureThreshold }}
+          {{- end }}
+          resources: {{- toYaml .Values.podResources | nindent 12 }}
+          {{- if .Values.env }}
+          env:
+            {{- range $key, $value := .Values.env }}
+            - name: "{{ $key }}"
+              value: "{{ $value }}"
+            {{- end }}
+            {{- range $envName, $envValue := .Values.envsecrets }}
+            - name: {{ $envName }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ $fullname }}-secrets
+                  key: {{ $envValue }}
+            {{- end }}
+            - name: JOB_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+          {{- end }}
+          {{- if  .Values.lifecycle.preStop.command }}
+          lifecycle:
+            preStop:
+              exec:
+                command: {{ .Values.lifecycle.preStop.command }}
+          {{- end }}
+      {{- if .Values.terminationGracePeriodSeconds }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      {{- end }}
+      volumes:
+        - name: proxy-config
+          configMap:
+            name: {{ include "litellm.fullname" . }}-config

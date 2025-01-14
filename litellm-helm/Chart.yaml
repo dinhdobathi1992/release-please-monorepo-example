@@ -1,0 +1,8 @@
+apiVersion: v2
+description: A helm chart to deploy adb litellm backend
+icon: https://www.python.org/static/img/python-logo-large.c36dccadd999.png?1576869008
+name: litellm-backend
+type: application
+
+appVersion: 0.2.0
+version: 1.0.0

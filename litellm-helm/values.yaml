@@ -1,0 +1,206 @@
+# Default values for transcription-service
+# This is a YAML-formatted file.
+# Declare name/value pairs to be passed into your templates.
+# name: value
+image:
+  repository: ghcr.io/berriai/litellm-database
+  tag: main-v1.49.1
+  pullPolicy: Always
+
+externalSecrets:
+  refreshInterval: 1h
+  iamIRSARole: arn:aws:iam::727646466693:role/ExternalSecrets-prod-shared-services
+  secretReferences:
+    - remoteRef:
+        key: litellm-prod-shared-services-rds-password
+        version: AWSCURRENT
+        property: password
+      secretKey: PG_PASSWORD
+    - remoteRef:
+        key: PROXY_MASTER_KEY
+        version: AWSCURRENT
+        property: PROXY_MASTER_KEY
+      secretKey: PROXY_MASTER_KEY
+    - remoteRef:
+        key: LITELLM_MASTER_KEY
+        version: AWSCURRENT
+        property: LITELLM_MASTER_KEY
+      secretKey: LITELLM_MASTER_KEY
+    - remoteRef:
+        key: DATABASE_URL
+        version: AWSCURRENT
+        property: DATABASE_URL
+      secretKey: DATABASE_URL
+    - remoteRef:
+        key: AZURE_OPENAI_KEY
+        version: AWSCURRENT
+        property: AZURE_OPENAI_KEY
+      secretKey: AZURE_OPENAI_KEY
+replicaCount: 2
+
+strategy:
+  type: RollingUpdate
+  rollingUpdate:
+    maxSurge: 0
+    maxUnavailable: 1
+
+dbInit:
+  env:
+    DATABASE_USERNAME: postgres
+    DATABASE_HOST: litellm-prod-shared-services.c1ycemaukcvj.ap-southeast-1.rds.amazonaws.com
+    DATABASE_NAME: litellm
+  envsecrets:
+    PGPASSWORD: PG_PASSWORD
+
+env:
+  DATABASE_USERNAME: postgres
+  DATABASE_HOST: litellm-prod-shared-services.c1ycemaukcvj.ap-southeast-1.rds.amazonaws.com
+  DATABASE_NAME: litellm
+  LITELLM_SALT_KEY: sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+envsecrets:
+  PGPASSWORD: PG_PASSWORD
+  PROXY_MASTER_KEY: PROXY_MASTER_KEY
+  LITELLM_MASTER_KEY: LITELLM_MASTER_KEY
+  DATABASE_URL: DATABASE_URL
+  AZURE_OPENAI_API_KEY: AZURE_OPENAI_KEY
+
+## Pod annotations
+## ref: https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/
+##
+podAnnotations: {}
+
+terminationGracePeriodSeconds: 30
+
+podResources:
+  limits:
+    cpu: 2000m
+    memory: 3Gi
+  requests:
+    cpu: 1000m
+    memory: 2Gi
+
+workerAnnotations: {}
+
+workerResources: {}
+
+lifecycle:
+  preStop:
+    command: '["/bin/sh", "-c", "sleep 30"]'
+
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 4
+  timeoutSeconds: 2
+  successThreshold: 1
+  failureThreshold: 2
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 4
+  timeoutSeconds: 2
+  successThreshold: 1
+  failureThreshold: 2
+
+# Pod Security Context
+# ref: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/
+securityContext:
+  enabled: false
+  # fsGroup: 1001
+  # runAsUser: 1001
+
+## Node selector
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector
+nodeSelector: {}
+
+## Affinity
+## ref: https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: eks.amazonaws.com/nodegroup
+              operator: In
+              values:
+                - litellm-20241118100525564200000015
+
+## Tolerations
+## ref:
+tolerations: {}
+
+# rbac:
+#   # Specifies whether RBAC resources should be created
+#   create: true
+
+serviceAccount:
+  create: true
+  annotations:
+    eks.amazonaws.com/role-arn: "arn:aws:iam::727646466693:role/Litellm-prod-shared-services"
+  # name:
+  ## Annotations for the Service Account
+  # annotations: {}
+
+service:
+  type: LoadBalancer
+  annotations: {}
+  ports:
+    - name: http
+      internalPort: 4000
+      externalPort: 4000
+      protocol: TCP
+
+ingress:
+  enabled: true
+  annotations:
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    alb.ingress.kubernetes.io/target-type: "ip"
+    alb.ingress.kubernetes.io/group.name: litellm-proxy
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS":443}]'
+    alb.ingress.kubernetes.io/actions.ssl-redirect: "443"
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:ap-southeast-1:727646466693:certificate/2b8a012a-c57b-4f64-b5bf-f85ef0e4f5b9
+    alb.ingress.kubernetes.io/healthcheck-path: /health/liveliness
+  paths:
+    - host: litellm.shared-services.adb.adi.tech
+      path: /
+      pathType: Prefix
+
+## Horizontal Pod Autoscaler
+## ref:
+autoscaling:
+  enabled: true
+  # minReplicas: 1
+  # maxReplicas: 3
+  # metrics:
+  # - type: Resource
+  #   resource:
+  #     name: cpu
+  #     targetAverageUtilization: 80
+  # - type: Resource
+  #   resource:
+  #     name: memory
+  #     targetAverageUtilization: 80
+
+proxy_config:
+  model_list:
+    # At least one model must exist for the proxy to start.
+    - model_name: bedrock-claude-sonnet
+      litellm_params:
+        model: bedrock/anthropic.claude-3-sonnet-20240229-v1:0
+        aws_region_name: us-west-2
+        aws_role_name: arn:aws:iam::727646466693:role/Litellm-prod-shared-services
+
+    - model_name: bedrock-claude-v35-sonnet
+      litellm_params:
+        model: bedrock/anthropic.claude-3-5-sonnet-20241022-v2:0
+        aws_region_name: us-west-2
+        aws_role_name: arn:aws:iam::727646466693:role/Litellm-prod-shared-services
+    - model_name: azure-gpt4o
+      litellm_params:
+        model: azure/gpt-4o
+        api_base: https://adb-projenie-ds-us-east.openai.azure.com/
+        api_version: "2023-05-15"
+        api_key: os.environ/AZURE_OPENAI_KEY
+  general_settings:
+    master_key: os.environ/PROXY_MASTER_KEY
