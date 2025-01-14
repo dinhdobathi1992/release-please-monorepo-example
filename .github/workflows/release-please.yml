@@ -86,4 +86,4 @@ jobs:
         run: |
           echo "Uploading release artifact for litellm-helm"
           ls -ls
-          gh release upload ${{ needs.release-please.outputs.litellm-helm--tag_name }} litellm-helm-*.tgz
+          gh release upload ${{ needs.release-please.outputs.litellm-helm--tag_name }} litellm-backend-*.tgz
