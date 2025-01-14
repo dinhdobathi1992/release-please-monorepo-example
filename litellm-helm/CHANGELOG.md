@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.3.0](https://github.com/dinhdobathi1992/release-please-monorepo-example/compare/litellm-backend@v1.2.0...litellm-backend@v1.3.0) (2025-01-14)
+
+
+### Features
+
+* Update serviceaccount.yaml ([b0580d5](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/b0580d5f8e04f57d39c63dc58df2098d0d788346))
+* Update serviceaccount.yaml ([b0580d5](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/b0580d5f8e04f57d39c63dc58df2098d0d788346))
+
 ## [1.2.0](https://github.com/dinhdobathi1992/release-please-monorepo-example/compare/litellm-backend@v1.1.0...litellm-backend@v1.2.0) (2025-01-14)
 
 
