@@ -31,7 +31,6 @@ jobs:
         run: |
           echo "Release outputs:"
 
-
   release-hello-react:
     if: ${{needs.release-please.outputs.hello-react--release_created}}
     runs-on: ubuntu-latest
@@ -84,4 +83,7 @@ jobs:
       - name: Upload Release Artifact
         env:
           GITHUB_TOKEN: ${{ secrets.MY_RELEASE_PLEASE_TOKEN }}
-        run: gh release upload ${{ needs.release-please.outputs.litellm-helm--tag_name }} litellm-helm-*.tgz
+        run: |
+          echo "Uploading release artifact for litellm-helm"
+          ls -ls
+          gh release upload ${{ needs.release-please.outputs.litellm-helm--tag_name }} litellm-helm-*.tgz
