@@ -4,5 +4,5 @@ icon: https://www.python.org/static/img/python-logo-large.c36dccadd999.png?15768
 name: litellm-backend
 type: application
 
-appVersion: 0.2.0
+appVersion: 0.3.0
 version: 1.0.0
