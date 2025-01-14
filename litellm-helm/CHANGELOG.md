@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.0 (2025-01-14)
+
+
+### Features
+
+* add helm ([bd77675](https://github.com/dinhdobathi1992/release-please-monorepo-example/commit/bd7767577217fba406004a8f8136164fde80dd6a))
+
 ## [1.0.0](https://github.com/aboitiz-data-innovation/helm-chart-repo-release-poc/compare/litellm-v1.0.0...litellm@v1.0.0) (2025-01-14)
 
 
